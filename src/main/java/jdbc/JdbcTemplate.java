@@ -16,7 +16,7 @@ public class JdbcTemplate {
     public void execute(final String sql) {
         try (final Statement statement = connection.createStatement()) {
             statement.execute(sql);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -36,7 +36,7 @@ public class JdbcTemplate {
                 result.add(rowMapper.mapRow(resultSet));
             }
             return result;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
