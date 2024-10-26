@@ -18,13 +18,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class H2EntityManagerTest {
+class SessionTest {
     private DatabaseServer server;
     private Connection connection;
     private TestJdbcTemplate jdbcTemplate;
     private DdlQueryBuilder ddlQueryBuilder;
     private DmlQueryBuilder dmlQueryBuilder;
-    private H2EntityManager entityManager;
+    private Session entityManager;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -35,7 +35,7 @@ class H2EntityManagerTest {
         ddlQueryBuilder = new DdlQueryBuilder(new H2Dialect());
         dmlQueryBuilder = new DmlQueryBuilder();
         createTableAndVerify();
-        entityManager = new H2EntityManager(jdbcTemplate, dmlQueryBuilder);
+        entityManager = new Session(jdbcTemplate, dmlQueryBuilder);
     }
 
     @AfterEach
