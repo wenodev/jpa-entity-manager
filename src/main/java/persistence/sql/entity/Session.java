@@ -1,40 +1,29 @@
 package persistence.sql.entity;
 
-import jdbc.JdbcTemplate;
-import persistence.sql.dml.DmlQueryBuilder;
-
 public class Session implements EntityManager {
-    private final JdbcTemplate jdbcTemplate;
-    private final DmlQueryBuilder dmlQueryBuilder;
+    private final EntityPersister entityPersister;
 
-    public Session(final JdbcTemplate jdbcTemplate, final DmlQueryBuilder dmlQueryBuilder) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.dmlQueryBuilder = dmlQueryBuilder;
+    public Session(final EntityPersister entityPersister) {
+        this.entityPersister = entityPersister;
     }
 
     @Override
-    public void persist(final Object entity) {
-        final String insert = dmlQueryBuilder.insert(entity.getClass(), entity);
-        jdbcTemplate.execute(insert);
+    public void persist(final Object entity){
+        entityPersister.insert(entity);
     }
 
     @Override
     public <T> T find(final Class<T> clazz, final Long id) {
-        final String select = dmlQueryBuilder.select(clazz, id);
-        return jdbcTemplate.queryForObject(select, new GenericRowMapper<>(clazz));
+        return entityPersister.select(clazz, id);
     }
 
     @Override
     public void remove(final Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String delete = dmlQueryBuilder.delete(entity.getClass(), idValue.value());
-        jdbcTemplate.execute(delete);
+        entityPersister.delete(entity);
     }
 
     @Override
     public void update(final Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String update = dmlQueryBuilder.update(entity.getClass(), entity, idValue.value());
-        jdbcTemplate.execute(update);
+        entityPersister.update(entity);
     }
 }

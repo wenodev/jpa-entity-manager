@@ -25,6 +25,7 @@ class SessionTest {
     private DdlQueryBuilder ddlQueryBuilder;
     private DmlQueryBuilder dmlQueryBuilder;
     private Session entityManager;
+    private EntityPersister entityPersister;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -35,7 +36,8 @@ class SessionTest {
         ddlQueryBuilder = new DdlQueryBuilder(new H2Dialect());
         dmlQueryBuilder = new DmlQueryBuilder();
         createTableAndVerify();
-        entityManager = new Session(jdbcTemplate, dmlQueryBuilder);
+        entityPersister = new EntityPersister(jdbcTemplate, dmlQueryBuilder);
+        entityManager = new Session(entityPersister);
     }
 
     @AfterEach

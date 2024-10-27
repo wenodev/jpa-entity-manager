@@ -2,7 +2,7 @@
 
 ## Step1
 - [x] Persistence Context 설계
-- [ ] Persister 구현
+- [x] Persister 구현
 
 ### 설계
 - EntityManager는 Entity를 관리하는 주체이다. 
