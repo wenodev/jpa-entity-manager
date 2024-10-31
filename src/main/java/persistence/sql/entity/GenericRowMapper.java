@@ -20,9 +20,12 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
     GenericRowMapper(final Class<T> clazz) {
         this.clazz = clazz;
-        this.fieldsMap = new HashMap<>();
         this.constructor = gettConstructor(clazz);
+        this.fieldsMap = getFieldsMap(clazz);
+    }
 
+    private Map getFieldsMap(final Class<T> clazz) {
+        final Map<String, Field> fieldsMap = new HashMap<>();
         for (final Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
             final Column column = field.getAnnotation(Column.class);
@@ -30,6 +33,7 @@ class GenericRowMapper<T> implements RowMapper<T> {
             fieldsMap.put(columnName.toLowerCase(), field);
             fieldsMap.put(field.getName().toLowerCase(), field);
         }
+        return fieldsMap;
     }
 
     private Constructor<T> gettConstructor(final Class<T> clazz) {
@@ -37,7 +41,7 @@ class GenericRowMapper<T> implements RowMapper<T> {
             final Constructor<T> declaredConstructor= clazz.getDeclaredConstructor();
             declaredConstructor.setAccessible(true);
             return declaredConstructor;
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             throw new IllegalArgumentException("""
                     Class %s must have a no-args constructor
                     """.formatted(clazz.getName()), e);
