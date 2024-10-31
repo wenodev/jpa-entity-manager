@@ -42,6 +42,7 @@ class AcceptanceTest {
     @DisplayName("시나리오 테스트")
     @Test
     void scenario() {
+        deleteIfTableExists();
         createTableAndVerify();
         insertPeopleAndVerify();
         findPersonByIdAndVerify(1L);
@@ -134,5 +135,12 @@ class AcceptanceTest {
     private void createTable() {
         String createSql = ddlQueryBuilder.create(Person.class);
         jdbcTemplate.execute(createSql);
+    }
+
+    private void deleteIfTableExists() {
+        if (jdbcTemplate.doesTableExist(Person.class)) {
+            final String dropSql = ddlQueryBuilder.drop(Person.class);
+            jdbcTemplate.execute(dropSql);
+        }
     }
 }
