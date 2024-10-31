@@ -4,19 +4,19 @@ import jakarta.persistence.Id;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
-public class IdValue {
+public class EntityId {
     private final Object entity;
 
-    public IdValue(final Object entity) {
+    public EntityId(final Object entity) {
         this.entity = entity;
     }
 
-    public Long value() {
+    public Long extractId() {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Id.class))
                 .findFirst()
                 .map(this::makeAccessible)
-                .map(this::getId)
+                .map(this::getIdValue)
                 .orElseThrow(()-> new RuntimeException("Cannot find id field"));
     }
 
@@ -25,7 +25,7 @@ public class IdValue {
         return field;
     }
 
-    private Long getId(final Field field) {
+    private Long getIdValue(final Field field) {
         try {
             return (Long) field.get(entity);
         } catch (final IllegalAccessException e) {

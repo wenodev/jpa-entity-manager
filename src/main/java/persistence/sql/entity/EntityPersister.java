@@ -18,14 +18,14 @@ public class EntityPersister {
     }
 
     public void update(Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String update = dmlQueryBuilder.update(entity.getClass(), entity, idValue.value());
+        final EntityId entityId = new EntityId(entity);
+        final String update = dmlQueryBuilder.update(entity.getClass(), entity, entityId.extractId());
         jdbcTemplate.execute(update);
     }
 
     public void delete(Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String delete = dmlQueryBuilder.delete(entity.getClass(), idValue.value());
+        final EntityId entityId = new EntityId(entity);
+        final String delete = dmlQueryBuilder.delete(entity.getClass(), entityId.extractId());
         jdbcTemplate.execute(delete);
     }
 
