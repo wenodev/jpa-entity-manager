@@ -50,18 +50,25 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
     @Override
     public T mapRow(final ResultSet resultSet) throws SQLException {
-        final T instance = createInstance();
         final ResultSetMetaData metaData = resultSet.getMetaData();
+        final T instance = createInstance();
+        mapAllColumns(resultSet, metaData, instance);
+        return instance;
+    }
 
-        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+    private void mapAllColumns(final ResultSet resultSet, final ResultSetMetaData metaData, final T instance) throws SQLException {
+        for (int i = metaData.getColumnCount(); i > 0; i--) {
             final String columnName = metaData.getColumnLabel(i).toLowerCase();
             final Field field = fieldsMap.get(columnName);
-            if (field != null) {
-                final Object value = getValueByFieldType(resultSet, i, field.getType());
-                setFieldValue(field, instance, value);
-            }
+            mapColumnToField(resultSet, instance, field, i);
         }
-        return instance;
+    }
+
+    private void mapColumnToField(final ResultSet resultSet, final T instance, final Field field, final int i) throws SQLException {
+        if (field != null) {
+            final Object value = getValueByFieldType(resultSet, i, field.getType());
+            setFieldValue(field, instance, value);
+        }
     }
 
     private T createInstance() {
