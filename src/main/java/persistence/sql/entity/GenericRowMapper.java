@@ -24,17 +24,18 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
         try {
             this.constructor = clazz.getDeclaredConstructor();
-            this.constructor.setAccessible(true);
-
-            for (final Field field : clazz.getDeclaredFields()) {
-                field.setAccessible(true);
-                final Column column = field.getAnnotation(Column.class);
-                final String columnName = column != null ? column.name() : field.getName();
-                fieldsMap.put(columnName.toLowerCase(), field);
-                fieldsMap.put(field.getName().toLowerCase(), field);
-            }
-        } catch (final NoSuchMethodException e) {
+        } catch (NoSuchMethodException e) {
             throw new IllegalArgumentException("Class " + clazz.getName() + " must have a no-args constructor", e);
+        }
+
+        this.constructor.setAccessible(true);
+
+        for (final Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+            final Column column = field.getAnnotation(Column.class);
+            final String columnName = column != null ? column.name() : field.getName();
+            fieldsMap.put(columnName.toLowerCase(), field);
+            fieldsMap.put(field.getName().toLowerCase(), field);
         }
     }
 
