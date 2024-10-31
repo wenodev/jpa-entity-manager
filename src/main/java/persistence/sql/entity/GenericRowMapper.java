@@ -13,50 +13,77 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GenericRowMapper<T> implements RowMapper<T> {
+class GenericRowMapper<T> implements RowMapper<T> {
     private final Class<T> clazz;
     private final Map<String, Field> fieldsMap;
     private final Constructor<T> constructor;
 
     GenericRowMapper(final Class<T> clazz) {
         this.clazz = clazz;
-        this.fieldsMap = new HashMap<>();
+        this.constructor = initializeConstructor(clazz);
+        this.fieldsMap = initializeFieldsMap(clazz);
+    }
 
+    private Map initializeFieldsMap(final Class<T> clazz) {
+        final Map<String, Field> fieldsMap = new HashMap<>();
+        for (final Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+            final Column column = field.getAnnotation(Column.class);
+            final String columnName = column != null ? column.name() : field.getName();
+            fieldsMap.put(columnName.toLowerCase(), field);
+            fieldsMap.put(field.getName().toLowerCase(), field);
+        }
+        return fieldsMap;
+    }
+
+    private Constructor<T> initializeConstructor(final Class<T> clazz) {
         try {
-            this.constructor = clazz.getDeclaredConstructor();
-            this.constructor.setAccessible(true);
-
-            for (final Field field : clazz.getDeclaredFields()) {
-                field.setAccessible(true);
-                final Column column = field.getAnnotation(Column.class);
-                final String columnName = column != null ? column.name() : field.getName();
-                fieldsMap.put(columnName.toLowerCase(), field);
-                fieldsMap.put(field.getName().toLowerCase(), field);
-            }
+            final Constructor<T> declaredConstructor = clazz.getDeclaredConstructor();
+            declaredConstructor.setAccessible(true);
+            return declaredConstructor;
         } catch (final NoSuchMethodException e) {
-            throw new IllegalArgumentException("Class " + clazz.getName() + " must have a no-args constructor", e);
+            throw new IllegalArgumentException("""
+                    Class %s must have a no-args constructor
+                    """.formatted(clazz.getName()), e);
         }
     }
 
     @Override
     public T mapRow(final ResultSet resultSet) throws SQLException {
+        final ResultSetMetaData metaData = resultSet.getMetaData();
+        final T instance = createInstance();
+        mapAllColumns(resultSet, metaData, instance);
+        return instance;
+    }
+
+    private void mapAllColumns(final ResultSet resultSet, final ResultSetMetaData metaData, final T instance) throws SQLException {
+        for (int i = metaData.getColumnCount(); i > 0; i--) {
+            final String columnName = metaData.getColumnLabel(i).toLowerCase();
+            final Field field = fieldsMap.get(columnName);
+            mapColumnToField(resultSet, instance, field, i);
+        }
+    }
+
+    private void mapColumnToField(final ResultSet resultSet, final T instance, final Field field, final int i) throws SQLException {
+        if (field != null) {
+            final Object value = getValueByFieldType(resultSet, i, field.getType());
+            setFieldValue(field, instance, value);
+        }
+    }
+
+    private T createInstance() {
         try {
-            final T instance = constructor.newInstance();
-            final ResultSetMetaData metaData = resultSet.getMetaData();
+            return constructor.newInstance();
+        } catch (final Exception e) {
+            throw new RuntimeException("Cannot create instance of " + clazz.getName(), e);
+        }
+    }
 
-            for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                final String columnName = metaData.getColumnLabel(i).toLowerCase();
-                final Field field = fieldsMap.get(columnName);
-
-                if (field != null) {
-                    final Object value = getValueByFieldType(resultSet, i, field.getType());
-                    field.set(instance, value);
-                }
-            }
-
-            return instance;
-        } catch (final ReflectiveOperationException e) {
-            throw new SQLException("Error mapping row to class " + clazz.getName(), e);
+    private void setFieldValue(final Field field, final T instance, final Object value) {
+        try {
+            field.set(instance, value);
+        } catch (final IllegalAccessException e) {
+            throw new RuntimeException("Cannot set value to field " + field.getName(), e);
         }
     }
 

@@ -12,25 +12,20 @@ public class EntityPersister {
         this.dmlQueryBuilder = dmlQueryBuilder;
     }
 
-    public void insert(final Object entity) {
+    void insert(final Object entity) {
         final String insert = dmlQueryBuilder.insert(entity.getClass(), entity);
         jdbcTemplate.execute(insert);
     }
 
-    public void update(Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String update = dmlQueryBuilder.update(entity.getClass(), entity, idValue.value());
+    void update(Object entity) {
+        final EntityId entityId = new EntityId(entity);
+        final String update = dmlQueryBuilder.update(entity.getClass(), entity, entityId.extractId());
         jdbcTemplate.execute(update);
     }
 
-    public void delete(Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String delete = dmlQueryBuilder.delete(entity.getClass(), idValue.value());
+    void delete(Object entity) {
+        final EntityId entityId = new EntityId(entity);
+        final String delete = dmlQueryBuilder.delete(entity.getClass(), entityId.extractId());
         jdbcTemplate.execute(delete);
-    }
-
-    public <T> T select(Class<T> clazz, Long id) {
-        final String select = dmlQueryBuilder.select(clazz, id);
-        return jdbcTemplate.queryForObject(select, new GenericRowMapper<>(clazz));
     }
 }

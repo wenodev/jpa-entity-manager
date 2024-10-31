@@ -26,6 +26,7 @@ class SessionTest {
     private DmlQueryBuilder dmlQueryBuilder;
     private Session entityManager;
     private EntityPersister entityPersister;
+    private EntityLoader entityLoader;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -35,9 +36,11 @@ class SessionTest {
         jdbcTemplate = new TestJdbcTemplate(connection);
         ddlQueryBuilder = new DdlQueryBuilder(new H2Dialect());
         dmlQueryBuilder = new DmlQueryBuilder();
+        deleteIfTableExists();
         createTableAndVerify();
         entityPersister = new EntityPersister(jdbcTemplate, dmlQueryBuilder);
-        entityManager = new Session(entityPersister);
+        entityLoader = new EntityLoader(jdbcTemplate, dmlQueryBuilder);
+        entityManager = new Session(entityPersister, entityLoader);
     }
 
     @AfterEach
@@ -89,5 +92,12 @@ class SessionTest {
     private void createTable() {
         final String createSql = ddlQueryBuilder.create(Person.class);
         jdbcTemplate.execute(createSql);
+    }
+
+    private void deleteIfTableExists() {
+        if (jdbcTemplate.doesTableExist(Person.class)) {
+            final String dropSql = ddlQueryBuilder.drop(Person.class);
+            jdbcTemplate.execute(dropSql);
+        }
     }
 }

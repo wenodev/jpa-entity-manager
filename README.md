@@ -11,3 +11,6 @@
 - Persistence Context는 Entity를 저장하는 저장소이다. 
 - Entity를 저장하는 저장소는 Entity를 저장하는 방법을 알고 있어야 한다. 
 - 이를 위해서 Persister를 구현한다. 
+
+## Step2
+- [x] EntityLoader를 구현한다.

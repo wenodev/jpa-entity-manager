@@ -26,15 +26,15 @@ public class H2EntityManager implements EntityManager {
 
     @Override
     public void remove(final Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String delete = dmlQueryBuilder.delete(entity.getClass(), idValue.value());
+        final EntityId entityId = new EntityId(entity);
+        final String delete = dmlQueryBuilder.delete(entity.getClass(), entityId.extractId());
         jdbcTemplate.execute(delete);
     }
 
     @Override
     public void update(final Object entity) {
-        final IdValue idValue = new IdValue(entity);
-        final String update = dmlQueryBuilder.update(entity.getClass(), entity, idValue.value());
+        final EntityId entityId = new EntityId(entity);
+        final String update = dmlQueryBuilder.update(entity.getClass(), entity, entityId.extractId());
         jdbcTemplate.execute(update);
     }
 }
