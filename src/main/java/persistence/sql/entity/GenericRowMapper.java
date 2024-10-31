@@ -20,11 +20,11 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
     GenericRowMapper(final Class<T> clazz) {
         this.clazz = clazz;
-        this.constructor = gettConstructor(clazz);
-        this.fieldsMap = getFieldsMap(clazz);
+        this.constructor = initializeConstructor(clazz);
+        this.fieldsMap = initializeFieldsMap(clazz);
     }
 
-    private Map getFieldsMap(final Class<T> clazz) {
+    private Map initializeFieldsMap(final Class<T> clazz) {
         final Map<String, Field> fieldsMap = new HashMap<>();
         for (final Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
@@ -36,7 +36,7 @@ class GenericRowMapper<T> implements RowMapper<T> {
         return fieldsMap;
     }
 
-    private Constructor<T> gettConstructor(final Class<T> clazz) {
+    private Constructor<T> initializeConstructor(final Class<T> clazz) {
         try {
             final Constructor<T> declaredConstructor= clazz.getDeclaredConstructor();
             declaredConstructor.setAccessible(true);
