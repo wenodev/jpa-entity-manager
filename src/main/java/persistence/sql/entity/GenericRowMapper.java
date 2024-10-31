@@ -38,7 +38,7 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
     private Constructor<T> initializeConstructor(final Class<T> clazz) {
         try {
-            final Constructor<T> declaredConstructor= clazz.getDeclaredConstructor();
+            final Constructor<T> declaredConstructor = clazz.getDeclaredConstructor();
             declaredConstructor.setAccessible(true);
             return declaredConstructor;
         } catch (final NoSuchMethodException e) {
@@ -50,23 +50,33 @@ class GenericRowMapper<T> implements RowMapper<T> {
 
     @Override
     public T mapRow(final ResultSet resultSet) throws SQLException {
-        try {
-            final T instance = constructor.newInstance();
-            final ResultSetMetaData metaData = resultSet.getMetaData();
+        final T instance = createInstance();
+        final ResultSetMetaData metaData = resultSet.getMetaData();
 
-            for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                final String columnName = metaData.getColumnLabel(i).toLowerCase();
-                final Field field = fieldsMap.get(columnName);
-
-                if (field != null) {
-                    final Object value = getValueByFieldType(resultSet, i, field.getType());
-                    field.set(instance, value);
-                }
+        for (int i = 1; i <= metaData.getColumnCount(); i++) {
+            final String columnName = metaData.getColumnLabel(i).toLowerCase();
+            final Field field = fieldsMap.get(columnName);
+            if (field != null) {
+                final Object value = getValueByFieldType(resultSet, i, field.getType());
+                setFieldValue(field, instance, value);
             }
+        }
+        return instance;
+    }
 
-            return instance;
-        } catch (final ReflectiveOperationException e) {
-            throw new SQLException("Error mapping row to class " + clazz.getName(), e);
+    private T createInstance() {
+        try {
+            return constructor.newInstance();
+        } catch (final Exception e) {
+            throw new RuntimeException("Cannot create instance of " + clazz.getName(), e);
+        }
+    }
+
+    private void setFieldValue(final Field field, final T instance, final Object value) {
+        try {
+            field.set(instance, value);
+        } catch (final IllegalAccessException e) {
+            throw new RuntimeException("Cannot set value to field " + field.getName(), e);
         }
     }
 
