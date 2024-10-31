@@ -26,6 +26,7 @@ class SessionTest {
     private DmlQueryBuilder dmlQueryBuilder;
     private Session entityManager;
     private EntityPersister entityPersister;
+    private EntityLoader entityLoader;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -38,7 +39,8 @@ class SessionTest {
         deleteIfTableExists();
         createTableAndVerify();
         entityPersister = new EntityPersister(jdbcTemplate, dmlQueryBuilder);
-        entityManager = new Session(entityPersister);
+        entityLoader = new EntityLoader(jdbcTemplate, dmlQueryBuilder);
+        entityManager = new Session(entityPersister, entityLoader);
     }
 
     @AfterEach

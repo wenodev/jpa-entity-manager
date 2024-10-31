@@ -28,9 +28,4 @@ public class EntityPersister {
         final String delete = dmlQueryBuilder.delete(entity.getClass(), entityId.extractId());
         jdbcTemplate.execute(delete);
     }
-
-    public <T> T select(Class<T> clazz, Long id) {
-        final String select = dmlQueryBuilder.select(clazz, id);
-        return jdbcTemplate.queryForObject(select, new GenericRowMapper<>(clazz));
-    }
 }
