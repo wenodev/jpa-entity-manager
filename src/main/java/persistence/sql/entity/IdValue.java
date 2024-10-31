@@ -2,6 +2,7 @@ package persistence.sql.entity;
 
 import jakarta.persistence.Id;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 
 public class IdValue {
     private final Object entity;
@@ -11,14 +12,15 @@ public class IdValue {
     }
 
     public Long value() {
-        final Field[] fields = entity.getClass().getDeclaredFields();
-        for (final Field field : fields) {
-            if (field.isAnnotationPresent(Id.class)) {
-                field.setAccessible(true);
-                return getId(field);
-            }
-        }
-        throw new RuntimeException("Cannot find id field");
+        return Arrays.stream(entity.getClass().getDeclaredFields())
+                .filter(field -> field.isAnnotationPresent(Id.class))
+                .findFirst()
+                .map(field -> {
+                    field.setAccessible(true);
+                    return field;
+                })
+                .map(this::getId)
+                .orElseThrow(()-> new RuntimeException("Cannot find id field"));
     }
 
     private Long getId(final Field field) {
