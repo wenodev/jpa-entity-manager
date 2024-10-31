@@ -11,17 +11,17 @@ public class IdValue {
     }
 
     public Long value() {
-        try {
-            final Field[] fields = entity.getClass().getDeclaredFields();
-            for (final Field field : fields) {
-                if (field.isAnnotationPresent(Id.class)) {
-                    field.setAccessible(true);
+        final Field[] fields = entity.getClass().getDeclaredFields();
+        for (final Field field : fields) {
+            if (field.isAnnotationPresent(Id.class)) {
+                field.setAccessible(true);
+                try {
                     return (Long) field.get(entity);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("Cannot access id field", e);
                 }
             }
-            throw new IllegalArgumentException("No @Id field found in entity");
-        } catch (final IllegalAccessException e) {
-            throw new RuntimeException("Failed to get id value", e);
         }
+        throw new RuntimeException("Cannot find id field");
     }
 }
