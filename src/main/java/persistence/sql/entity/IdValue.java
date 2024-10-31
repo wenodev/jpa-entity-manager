@@ -15,13 +15,17 @@ public class IdValue {
         for (final Field field : fields) {
             if (field.isAnnotationPresent(Id.class)) {
                 field.setAccessible(true);
-                try {
-                    return (Long) field.get(entity);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("Cannot access id field", e);
-                }
+                return getId(field);
             }
         }
         throw new RuntimeException("Cannot find id field");
+    }
+
+    private Long getId(final Field field) {
+        try {
+            return (Long) field.get(entity);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot access id field", e);
+        }
     }
 }
