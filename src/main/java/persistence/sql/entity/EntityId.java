@@ -4,14 +4,14 @@ import jakarta.persistence.Id;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
-public class EntityId {
+class EntityId {
     private final Object entity;
 
-    public EntityId(final Object entity) {
+    EntityId(final Object entity) {
         this.entity = entity;
     }
 
-    public Long extractId() {
+    Long extractId() {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Id.class))
                 .findFirst()
