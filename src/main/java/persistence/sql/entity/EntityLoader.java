@@ -12,7 +12,7 @@ class EntityLoader {
         this.dmlQueryBuilder = dmlQueryBuilder;
     }
 
-    public <T> T select(Class<T> clazz, Long id) {
+    <T> T select(Class<T> clazz, Long id) {
         final String select = dmlQueryBuilder.select(clazz, id);
         return jdbcTemplate.queryForObject(select, new GenericRowMapper<>(clazz));
     }

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GenericRowMapper<T> implements RowMapper<T> {
+class GenericRowMapper<T> implements RowMapper<T> {
     private final Class<T> clazz;
     private final Map<String, Field> fieldsMap;
     private final Constructor<T> constructor;
