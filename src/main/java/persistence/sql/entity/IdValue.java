@@ -15,18 +15,20 @@ public class IdValue {
         return Arrays.stream(entity.getClass().getDeclaredFields())
                 .filter(field -> field.isAnnotationPresent(Id.class))
                 .findFirst()
-                .map(field -> {
-                    field.setAccessible(true);
-                    return field;
-                })
+                .map(this::makeAccessible)
                 .map(this::getId)
                 .orElseThrow(()-> new RuntimeException("Cannot find id field"));
+    }
+
+    private Field makeAccessible(final Field field) {
+        field.setAccessible(true);
+        return field;
     }
 
     private Long getId(final Field field) {
         try {
             return (Long) field.get(entity);
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             throw new RuntimeException("Cannot access id field", e);
         }
     }
