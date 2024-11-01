@@ -14,3 +14,9 @@
 
 ## Step2
 - [x] EntityLoader를 구현한다.
+
+
+## Step3
+- [] PersistenceContext 생성
+- [] 1차 캐싱
+- [] Dirty Checking
