@@ -3,10 +3,12 @@ package persistence.sql.entity;
 public class Session implements EntityManager {
     private final EntityPersister entityPersister;
     private final EntityLoader entityLoader;
+    private final PersistenceContext persistenceContext;
 
-    public Session(final EntityPersister entityPersister, final EntityLoader entityLoader) {
+    public Session(final EntityPersister entityPersister, final EntityLoader entityLoader, final PersistenceContext persistenceContext) {
         this.entityPersister = entityPersister;
         this.entityLoader = entityLoader;
+        this.persistenceContext = persistenceContext;
     }
 
     @Override

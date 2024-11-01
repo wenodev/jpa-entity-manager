@@ -27,6 +27,7 @@ class SessionTest {
     private Session entityManager;
     private EntityPersister entityPersister;
     private EntityLoader entityLoader;
+    private PersistenceContext persistenceContext;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -40,7 +41,7 @@ class SessionTest {
         createTableAndVerify();
         entityPersister = new EntityPersister(jdbcTemplate, dmlQueryBuilder);
         entityLoader = new EntityLoader(jdbcTemplate, dmlQueryBuilder);
-        entityManager = new Session(entityPersister, entityLoader);
+        entityManager = new Session(entityPersister, entityLoader, persistenceContext);
     }
 
     @AfterEach
