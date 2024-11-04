@@ -47,6 +47,14 @@ public class Person {
         return age;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void updateEmail(final String email) {
+        this.email = email;
+    }
+
     @Override
     public String toString() {
         return "Person{" +

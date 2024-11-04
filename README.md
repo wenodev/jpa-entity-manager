@@ -19,4 +19,4 @@
 ## Step3
 - [x] PersistenceContext 생성
 - [x] 1차 캐싱
-- [] Dirty Checking
+- [x] Dirty Checking

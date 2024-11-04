@@ -1,5 +1,6 @@
 package persistence.sql.entity;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class Session implements EntityManager {
@@ -46,5 +47,14 @@ public class Session implements EntityManager {
         final EntityId entityId = new EntityId(entity);
         final Long id = entityId.extractId();
         persistenceContext.put(entity.getClass(), id, entity);  // 캐시 업데이트
+    }
+
+    public void flush() {
+        final Map<CacheKey, Object> dirtyEntities = persistenceContext.getDirtyEntities();
+        for (final Map.Entry<CacheKey, Object> entry : dirtyEntities.entrySet()) {
+            final Object entity = entry.getValue();
+            entityPersister.update(entity);
+        }
+        persistenceContext.clearDirtyEntities();
     }
 }
