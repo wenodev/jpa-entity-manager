@@ -41,12 +41,28 @@ class SessionTest {
         createTableAndVerify();
         entityPersister = new EntityPersister(jdbcTemplate, dmlQueryBuilder);
         entityLoader = new EntityLoader(jdbcTemplate, dmlQueryBuilder);
+        persistenceContext = new PersistenceContext();
         entityManager = new Session(entityPersister, entityLoader, persistenceContext);
     }
 
     @AfterEach
     void tearDown() {
         server.stop();
+    }
+
+    @DisplayName("1차 캐시가 잘 동작하는지 검증한다.")
+    @Test
+    void firstLevelCacheTest() {
+        final Person expectedPerson = new Person(1L, "Kent Beck", 64, "beck@example.com");
+        entityManager.persist(expectedPerson);
+
+        // 처음 조회 시에는 1차 캐시에 없으므로 DB에서 조회
+        final Person actualPerson = entityManager.find(Person.class, 1L);
+        assertThat(actualPerson.getId()).isEqualTo(expectedPerson.getId());
+
+        // 두 번째 조회 시에는 1차 캐시에서 조회
+        final Person cachedPerson = entityManager.find(Person.class, 1L);
+        assertThat(cachedPerson).isSameAs(actualPerson);
     }
 
     @DisplayName("Person 객체를 저장하고 조회하고 수정하고 삭제한다.")
