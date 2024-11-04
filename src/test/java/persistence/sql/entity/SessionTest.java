@@ -50,6 +50,19 @@ class SessionTest {
         server.stop();
     }
 
+    @DisplayName("더티 체크가 잘 동작하는지 검증한다.")
+    @Test
+    void dirtyCheckTest() {
+        final Person expectedPerson = new Person(1L, "Kent Beck", 64, "beck@example.com");
+        entityManager.persist(expectedPerson);
+
+        expectedPerson.updateEmail("kentbeck@example.com");
+        entityManager.flush();
+
+        final Person actualPerson = entityManager.find(Person.class, 1L);
+        assertThat(actualPerson.getEmail()).isEqualTo("kentbeck@example.com");
+    }
+
     @DisplayName("1차 캐시가 잘 동작하는지 검증한다.")
     @Test
     void firstLevelCacheTest() {
