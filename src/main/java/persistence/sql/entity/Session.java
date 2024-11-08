@@ -41,14 +41,6 @@ public class Session implements EntityManager {
         persistenceContext.remove(entity.getClass(), id);
     }
 
-    @Override
-    public void update(final Object entity) {
-        entityPersister.update(entity);
-        final EntityId entityId = new EntityId(entity);
-        final Long id = entityId.extractId();
-        persistenceContext.put(entity.getClass(), id, entity);
-    }
-
     public void flush() {
         final Map<CacheKey, Object> dirtyEntities = persistenceContext.getDirtyEntities();
         for (final Map.Entry<CacheKey, Object> entry : dirtyEntities.entrySet()) {
@@ -56,5 +48,22 @@ public class Session implements EntityManager {
             entityPersister.update(entity);
         }
         persistenceContext.clearDirtyEntities();
+    }
+
+    public <T> T merge(final T entity) {
+        final EntityId entityId = new EntityId(entity);
+        final Long id = entityId.extractId();
+        final Class<?> entityClass = entity.getClass();
+
+        final Optional<Object> managedEntity = persistenceContext.find(entityClass, id);
+
+        if (managedEntity.isPresent()) {
+            persistenceContext.put(entityClass, id, entity);
+        } else {
+            entityPersister.insert(entity);
+            persistenceContext.put(entityClass, id, entity);
+        }
+
+        return entity;
     }
 }

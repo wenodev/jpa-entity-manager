@@ -88,7 +88,7 @@ class SessionTest {
         assertThat(actualPerson.getId()).isEqualTo(expectedPerson.getId());
 
         final Person personToUpdate = new Person(1L, "Kent Beck", 60, "youngBeck@example.com");
-        entityManager.update(personToUpdate);
+        entityManager.merge(personToUpdate);
 
         final Person updatedPerson = entityManager.find(Person.class, 1L);
         assertThat(updatedPerson.getAge()).isEqualTo(60);
