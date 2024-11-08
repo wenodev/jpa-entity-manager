@@ -4,41 +4,43 @@ import jakarta.persistence.Entity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 class PersistenceContext {
-    private final Map<CacheKey, Object> firstLevelCache = new HashMap<>();
-    private final Map<CacheKey, Object> dirtyEntities = new HashMap<>();
+    private final Map<CacheKey, CacheEntry> entityCache = new HashMap<>();
 
     Optional<Object> find(final Class<?> entityClass, final Long id) {
         return Optional.ofNullable(id)
                 .map(validId -> getCacheKey(entityClass, validId))
-                .map(firstLevelCache::get);
+                .map(entityCache::get)
+                .map(CacheEntry::getEntity);
     }
 
     void put(final Class<?> entityClass, final Long id, final Object entity) {
         Optional.ofNullable(id)
                 .map(validId -> getCacheKey(entityClass, validId))
                 .ifPresent(key -> {
-                    firstLevelCache.put(key, entity);
-                    dirtyEntities.put(key, entity);
+                    entityCache.put(key, new CacheEntry(entity));
                 });
     }
 
     void remove(final Class<?> entityClass, final Long id) {
         Optional.ofNullable(id)
                 .map(validId -> getCacheKey(entityClass, validId))
-                .ifPresent(key -> {
-                    firstLevelCache.remove(key);
-                    dirtyEntities.remove(key);
-                });
+                .ifPresent(entityCache::remove);
     }
 
     Map<CacheKey, Object> getDirtyEntities() {
-        return new HashMap<>(dirtyEntities);
+        return entityCache.entrySet().stream()
+                .filter(entry -> entry.getValue().isDirty())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().getEntity()
+                ));
     }
 
     void clearDirtyEntities() {
-        dirtyEntities.clear();
+        entityCache.values().forEach(CacheEntry::clearDirty);
     }
 
     private CacheKey getCacheKey(final Class<?> entityClass, final Long id) {

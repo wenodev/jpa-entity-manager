@@ -46,7 +46,7 @@ public class Session implements EntityManager {
         entityPersister.update(entity);
         final EntityId entityId = new EntityId(entity);
         final Long id = entityId.extractId();
-        persistenceContext.put(entity.getClass(), id, entity);  // 캐시 업데이트
+        persistenceContext.put(entity.getClass(), id, entity);
     }
 
     public void flush() {
