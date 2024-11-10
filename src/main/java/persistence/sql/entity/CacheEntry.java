@@ -7,16 +7,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 class CacheEntry {
+    private final Map<String, Object> snapshot;
     private final Object entity;
     private boolean dirty;
 
     CacheEntry(final Object entity) {
-        captureFieldValues(entity);
+        this.snapshot = captureFieldValues(entity);
         this.entity = entity;
         this.dirty = false;
     }
 
-    private Map<String, Object> captureFieldValues(final Object entity) {
+    Map<String, Object> captureFieldValues(final Object entity) {
         final Map<String, Object> values = new HashMap<>();
         for (final Field field : entity.getClass().getDeclaredFields()) {
             if (isPersistentField(field)) {
@@ -50,5 +51,9 @@ class CacheEntry {
 
     void clearDirty() {
         this.dirty = false;
+    }
+
+    Map<String, Object> getSnapshot() {
+        return snapshot;
     }
 }

@@ -1,5 +1,6 @@
 package persistence.sql.entity;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -45,9 +46,31 @@ public class Session implements EntityManager {
         final Map<CacheKey, Object> dirtyEntities = persistenceContext.getDirtyEntities();
         for (final Map.Entry<CacheKey, Object> entry : dirtyEntities.entrySet()) {
             final Object entity = entry.getValue();
-            entityPersister.update(entity);
+            final EntityId entityId = new EntityId(entity);
+            final Long id = entityId.extractId();
+            final CacheEntry cacheEntry = persistenceContext.find(entity.getClass(), id)
+                    .map(e -> (CacheEntry) e)
+                    .orElseThrow(() -> new IllegalStateException("Entity not found in persistence context"));
+            final Map<String, Object> snapshot = cacheEntry.getSnapshot();
+            final Map<String, Object> currentValues = cacheEntry.captureFieldValues(entity);
+            final Map<String, Object> diff = getDifference(snapshot, currentValues);
+            if (!diff.isEmpty()) {
+                entityPersister.update(entity);
+            }
         }
         persistenceContext.clearDirtyEntities();
+    }
+
+    private Map<String, Object> getDifference(final Map<String, Object> snapshot, final Map<String, Object> currentValues) {
+        final Map<String, Object> diff = new HashMap<>();
+        for (final String fieldName : snapshot.keySet()) {
+            final Object snapshotValue = snapshot.get(fieldName);
+            final Object currentValue = currentValues.get(fieldName);
+            if (!snapshotValue.equals(currentValue)) {
+                diff.put(fieldName, currentValue);
+            }
+        }
+        return diff;
     }
 
     public <T> T merge(final T entity) {
