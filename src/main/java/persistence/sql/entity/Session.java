@@ -1,6 +1,5 @@
 package persistence.sql.entity;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -9,7 +8,9 @@ public class Session implements EntityManager {
     private final EntityLoader entityLoader;
     private final PersistenceContext persistenceContext;
 
-    public Session(final EntityPersister entityPersister, final EntityLoader entityLoader, final PersistenceContext persistenceContext) {
+    public Session(final EntityPersister entityPersister,
+                   final EntityLoader entityLoader,
+                   final PersistenceContext persistenceContext) {
         this.entityPersister = entityPersister;
         this.entityLoader = entityLoader;
         this.persistenceContext = persistenceContext;
@@ -17,85 +18,98 @@ public class Session implements EntityManager {
 
     @Override
     public void persist(final Object entity) {
-        entityPersister.insert(entity);
-        final EntityId entityId = new EntityId(entity);
-        final Long id = entityId.extractId();
-        persistenceContext.put(entity.getClass(), id, entity);
-    }
+        final CacheKey key = createKey(entity);
 
-    public <T> T find(final Class<T> clazz, final Long id) {
-        final Optional<Object> cachedEntity = persistenceContext.find(clazz, id);
-        if (cachedEntity.isPresent()) {
-            return clazz.cast(cachedEntity.get());
+        try {
+            persistenceContext.addEntity(key, entity);
+            entityPersister.insert(entity);
+            persistenceContext.managedEntity(key, entity);
+        } catch (final Exception e) {
+            persistenceContext.removeEntity(key);
+            throw new IllegalStateException("Failed to persist entity: " + key.className(), e);
         }
-
-        final T loadedEntity = entityLoader.select(clazz, id);
-        persistenceContext.put(clazz, id, loadedEntity);
-        return loadedEntity;
     }
 
     @Override
     public void remove(final Object entity) {
-        entityPersister.delete(entity);
-        final EntityId entityId = new EntityId(entity);
-        final Long id = entityId.extractId();
-        persistenceContext.remove(entity.getClass(), id);
+        final CacheKey key = createKey(entity);
+
+        if (!persistenceContext.containsEntity(entity.getClass(), extractId(entity))) {
+            throw new IllegalArgumentException("Entity must be managed to be removed");
+        }
+
+        try {
+            persistenceContext.removeEntity(key);
+            entityPersister.delete(entity);
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to remove entity: " + key.className(), e);
+        }
+    }
+
+    public <T> T find(final Class<T> entityClass, final Long id) {
+        final CacheKey key = new CacheKey(entityClass.getSimpleName(), id);
+
+        final Optional<Object> cachedEntity = persistenceContext.getEntity(key);
+        if (cachedEntity.isPresent()) {
+            return entityClass.cast(cachedEntity.get());
+        }
+
+        try {
+            final T loadedEntity = entityLoader.select(entityClass, id);
+            if (loadedEntity == null) {
+                return null;
+            }
+
+            persistenceContext.managedEntity(key, loadedEntity);
+            return loadedEntity;
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to load entity: " + entityClass.getSimpleName(), e);
+        }
     }
 
     public void flush() {
         final Map<CacheKey, Object> dirtyEntities = persistenceContext.getDirtyEntities();
+
         for (final Map.Entry<CacheKey, Object> entry : dirtyEntities.entrySet()) {
             final Object entity = entry.getValue();
-            final EntityId entityId = new EntityId(entity);
-            final Long id = entityId.extractId();
-            final CacheEntry cacheEntry = persistenceContext.find(entity.getClass(), id)
-                    .map(e -> (CacheEntry) e)
-                    .orElseThrow(() -> new IllegalStateException("Entity not found in persistence context"));
-            final Map<String, Object> snapshot = cacheEntry.getSnapshot();
-            final Map<String, Object> currentValues = cacheEntry.captureFieldValues(entity);
-            final Map<String, Object> diff = getDifference(snapshot, currentValues);
-            if (!diff.isEmpty()) {
+            try {
                 entityPersister.update(entity);
+            } catch (final Exception e) {
+                throw new IllegalStateException("Failed to flush", e);
             }
         }
-        persistenceContext.clearDirtyEntities();
-    }
-
-    private Map<String, Object> getDifference(final Map<String, Object> snapshot, final Map<String, Object> currentValues) {
-        final Map<String, Object> diff = new HashMap<>();
-        for (final String fieldName : snapshot.keySet()) {
-            final Object snapshotValue = snapshot.get(fieldName);
-            final Object currentValue = currentValues.get(fieldName);
-            if (!snapshotValue.equals(currentValue)) {
-                diff.put(fieldName, currentValue);
-            }
-        }
-        return diff;
     }
 
     public <T> T merge(final T entity) {
-        final EntityId entityId = new EntityId(entity);
-        final Long id = entityId.extractId();
-        final Class<?> entityClass = entity.getClass();
+        final CacheKey key = createKey(entity);
+        final Long id = extractId(entity);
 
-        if (isPersisted(entityClass, id)) {
-            update(entity, entityClass, id);
-            return entity;
+        if (persistenceContext.containsEntity(entity.getClass(), id)) {
+            try {
+                entityPersister.update(entity);
+                persistenceContext.managedEntity(key, entity);
+                return entity;
+            } catch (final Exception e) {
+                throw new IllegalStateException("Failed to merge managed entity: " + key.className(), e);
+            }
         }
-        insertAndUpdate(entity, entityClass, id);
-        return entity;
+        try {
+            entityPersister.insert(entity);
+            persistenceContext.managedEntity(key, entity);
+            return entity;
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to merge new entity: " + key.className(), e);
+        }
     }
 
-    private <T> void insertAndUpdate(final T entity, final Class<?> entityClass, final Long id) {
-        entityPersister.insert(entity);
-        persistenceContext.put(entityClass, id, entity);
+    private CacheKey createKey(final Object entity) {
+        return new CacheKey(
+                entity.getClass().getSimpleName(),
+                extractId(entity)
+        );
     }
 
-    private <T> void update(final T entity, final Class<?> entityClass, final Long id) {
-        persistenceContext.put(entityClass, id, entity);
-    }
-
-    private boolean isPersisted(final Class<?> entityClass, final Long id) {
-        return persistenceContext.find(entityClass, id).isPresent();
+    private Long extractId(final Object entity) {
+        return new EntityId(entity).extractId();
     }
 }
