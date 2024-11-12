@@ -78,15 +78,24 @@ public class Session implements EntityManager {
         final Long id = entityId.extractId();
         final Class<?> entityClass = entity.getClass();
 
-        final Optional<Object> managedEntity = persistenceContext.find(entityClass, id);
-
-        if (managedEntity.isPresent()) {
-            persistenceContext.put(entityClass, id, entity);
-        } else {
-            entityPersister.insert(entity);
-            persistenceContext.put(entityClass, id, entity);
+        if (isPersisted(entityClass, id)) {
+            update(entity, entityClass, id);
+            return entity;
         }
-
+        insertAndUpdate(entity, entityClass, id);
         return entity;
+    }
+
+    private <T> void insertAndUpdate(final T entity, final Class<?> entityClass, final Long id) {
+        entityPersister.insert(entity);
+        persistenceContext.put(entityClass, id, entity);
+    }
+
+    private <T> void update(final T entity, final Class<?> entityClass, final Long id) {
+        persistenceContext.put(entityClass, id, entity);
+    }
+
+    private boolean isPersisted(final Class<?> entityClass, final Long id) {
+        return persistenceContext.find(entityClass, id).isPresent();
     }
 }
