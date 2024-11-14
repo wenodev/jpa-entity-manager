@@ -54,11 +54,8 @@ class PersistenceContext {
     }
 
     private boolean isDirtyAndManagedEntity(final Map.Entry<CacheKey, CacheEntry> entry) {
-        final CacheKey key = entry.getKey();
-        final EntityEntry entityEntry = entityEntries.get(key);
-        return entry.getValue().isDirty() &&
-               entityEntry != null &&
-               entityEntry.isManaged();
+        final EntityEntry entityEntry = entityEntries.get(entry.getKey());
+        return entityEntry.isDirtyAndManagedEntity(entry.getValue());
     }
 
     private CacheKey getCacheKey(final Class<?> entityClass, final Long id) {

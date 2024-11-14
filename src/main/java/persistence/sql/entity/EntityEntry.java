@@ -14,4 +14,8 @@ class EntityEntry {
     boolean isManaged() {
         return status == Status.MANAGED;
     }
+
+    boolean isDirtyAndManagedEntity(final CacheEntry value) {
+        return value.isDirty() && isManaged();
+    }
 }
