@@ -50,17 +50,10 @@ public class Session implements EntityManager {
             return entityClass.cast(cachedEntity.get());
         }
 
-        try {
-            final T loadedEntity = entityLoader.select(entityClass, id);
-            if (loadedEntity == null) {
-                return null;
-            }
-
-            persistenceContext.managedEntity(key, loadedEntity);
-            return loadedEntity;
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to load entity: " + entityClass.getSimpleName(), e);
-        }
+        final EntityEntry entityEntry = persistenceContext.preLoad(entityClass, id);
+        final T loadedEntity = entityLoader.select(entityClass, id);
+        persistenceContext.postLoad(loadedEntity, id, entityEntry);
+        return loadedEntity;
     }
 
     public void flush() {

@@ -40,7 +40,7 @@ class PersistenceContext {
     }
 
     boolean containsEntity(final Class<?> entityClass, final Long id) {
-        final CacheKey key = getCacheKey(entityClass, id);
+        final CacheKey key = createCacheKey(entityClass, id);
         return entityCache.containsKey(key);
     }
 
@@ -48,6 +48,21 @@ class PersistenceContext {
         return entityCache.entrySet().stream()
                 .filter(this::isDirtyAndManagedEntity)
                 .collect(toCacheKeyObjectMap());
+    }
+
+    EntityEntry preLoad(final Class<?> entity, final Object primaryKey) {
+        final EntityEntry entry = new EntityEntry(Status.LOADING);
+        final CacheKey cacheKey = createCacheKey(entity, (Long) primaryKey);
+        entityEntries.put(cacheKey, entry);
+        entityCache.put(cacheKey, new CacheEntry(entity));
+        return entry;
+    }
+
+    void postLoad(final Object entity, final Long id, final EntityEntry entityEntry) {
+        entityEntry.updateStatus(Status.MANAGED);
+        final CacheKey cacheKey = createCacheKey(entity.getClass(), id);
+        entityEntries.put(cacheKey, entityEntry);
+        entityCache.put(cacheKey, new CacheEntry(entity));
     }
 
     private Collector<Map.Entry<CacheKey, CacheEntry>, ?, Map<CacheKey, Object>> toCacheKeyObjectMap() {
@@ -61,7 +76,7 @@ class PersistenceContext {
         return entityEntry.isDirtyAndManagedEntity(entry.getValue());
     }
 
-    private CacheKey getCacheKey(final Class<?> entityClass, final Long id) {
+    private CacheKey createCacheKey(final Class<?> entityClass, final Long id) {
         validateEntity(entityClass);
         return new CacheKey(entityClass.getSimpleName(), id);
     }
