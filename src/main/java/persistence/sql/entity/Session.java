@@ -38,12 +38,8 @@ public class Session implements EntityManager {
             throw new IllegalArgumentException("Entity must be managed to be removed");
         }
 
-        try {
-            persistenceContext.removeEntity(key);
-            entityPersister.delete(entity);
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to remove entity: " + key.className(), e);
-        }
+        persistenceContext.removeEntity(key);
+        entityPersister.delete(entity);
     }
 
     public <T> T find(final Class<T> entityClass, final Long id) {
