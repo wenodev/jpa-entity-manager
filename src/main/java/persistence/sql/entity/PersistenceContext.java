@@ -12,7 +12,10 @@ class PersistenceContext {
     private final Map<CacheKey, EntityEntry> entityEntries = new HashMap<>();
 
     Optional<Object> getEntity(final CacheKey key) {
-        return Optional.ofNullable(entityCache.get(key))
+        final EntityEntry entityEntry = entityEntries.get(key);
+        entityEntry.updateStatus(Status.LOADING);
+        final CacheEntry value = entityCache.get(key);
+        return Optional.ofNullable(value)
                 .map(CacheEntry::getEntity);
     }
 
