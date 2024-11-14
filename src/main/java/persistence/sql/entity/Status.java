@@ -2,6 +2,9 @@ package persistence.sql.entity;
 
 public enum Status {
     MANAGED,
-    NEW,
-    DELETED
+    READ_ONLY,
+    DELETED,
+    GONE,
+    LOADING,
+    SAVING
 }

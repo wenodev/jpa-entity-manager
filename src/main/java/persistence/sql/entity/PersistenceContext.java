@@ -19,7 +19,7 @@ class PersistenceContext {
     void addEntity(final CacheKey key, final Object entity) {
         final CacheEntry cacheEntry = new CacheEntry(entity);
         entityCache.put(key, cacheEntry);
-        entityEntries.put(key, new EntityEntry(Status.NEW));
+        entityEntries.put(key, new EntityEntry(Status.MANAGED));
     }
 
     void managedEntity(final CacheKey key, final Object entity) {
