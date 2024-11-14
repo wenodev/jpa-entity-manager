@@ -76,7 +76,7 @@ class PersistenceContext {
         return entityEntry.isDirtyAndManagedEntity(entry.getValue());
     }
 
-    private CacheKey createCacheKey(final Class<?> entityClass, final Long id) {
+    private CacheKey createCacheKey(final Class<?> entityClass, final Object id) {
         validateEntity(entityClass);
         return new CacheKey(entityClass.getSimpleName(), id);
     }
@@ -85,5 +85,26 @@ class PersistenceContext {
         if (!entityClass.isAnnotationPresent(Entity.class)) {
             throw new IllegalArgumentException("Class must be annotated with @Entity");
         }
+    }
+
+    boolean contains(final CacheKey entity) {
+        return entityCache.containsKey(entity);
+    }
+
+    void prePersist(final Object entity, final Object primaryKey) {
+        final CacheKey key = createCacheKey(entity.getClass(),primaryKey);
+        entityEntries.put(key, new EntityEntry(Status.SAVING));
+    }
+
+    void postPersist(final Object entity, final Object primaryKey) {
+        final CacheKey key = createCacheKey(entity.getClass(), primaryKey);
+        entityEntries.put(key, new EntityEntry(Status.MANAGED));
+        entityCache.put(key, new CacheEntry(entity));
+    }
+
+    void handlePersistError(final CacheKey cacheKey) {
+        final EntityEntry entityEntry = new EntityEntry(Status.GONE);
+        entityEntries.put(cacheKey, entityEntry);
+        entityCache.remove(cacheKey);
     }
 }

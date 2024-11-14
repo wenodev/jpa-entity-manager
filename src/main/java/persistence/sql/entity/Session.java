@@ -1,5 +1,6 @@
 package persistence.sql.entity;
 
+import jakarta.persistence.PersistenceException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,13 +21,18 @@ public class Session implements EntityManager {
     public void persist(final Object entity) {
         final CacheKey key = createKey(entity);
 
+        if (persistenceContext.contains(key)) {
+            return;
+        }
+
         try {
-            persistenceContext.addEntity(key, entity);
+            final Object primaryKey = entityLoader.getMaxId(entity.getClass());
+            persistenceContext.prePersist(entity, primaryKey);
             entityPersister.insert(entity);
-            persistenceContext.managedEntity(key, entity);
-        } catch (final Exception e) {
-            persistenceContext.removeEntity(key);
-            throw new IllegalStateException("Failed to persist entity: " + key.className(), e);
+            persistenceContext.postPersist(entity, primaryKey);
+        } catch (final RuntimeException e) {
+            persistenceContext.handlePersistError(key);
+            throw new PersistenceException("Entity persist failed", e);
         }
     }
 
