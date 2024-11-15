@@ -107,4 +107,14 @@ class PersistenceContext {
         entityEntries.put(cacheKey, entityEntry);
         entityCache.remove(cacheKey);
     }
+
+    Status getEntityStatus(final CacheKey key) {
+        final EntityEntry entityEntry = entityEntries.get(key);
+        return entityEntry.getStatus();
+    }
+
+    void markAsDeleted(final CacheKey key) {
+        final EntityEntry entityEntry = entityEntries.get(key);
+        entityEntry.updateStatus(Status.DELETED);
+    }
 }

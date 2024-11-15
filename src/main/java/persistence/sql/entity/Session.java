@@ -44,8 +44,19 @@ public class Session implements EntityManager {
             throw new IllegalArgumentException("Entity must be managed to be removed");
         }
 
-        persistenceContext.removeEntity(key);
-        entityPersister.delete(entity);
+        final Status currentStatus = persistenceContext.getEntityStatus(key);
+
+        if (currentStatus == Status.DELETED || currentStatus == Status.GONE) {
+            throw new IllegalStateException("Entity already deleted: %s".formatted(key.className()));
+        }
+        if (currentStatus == Status.SAVING || currentStatus == Status.LOADING) {
+            throw new IllegalStateException("Cannot remove entity while %s: %s".formatted(currentStatus.name().toLowerCase(), key.className()));
+        }
+        if (currentStatus == Status.READ_ONLY) {
+            throw new IllegalStateException("Cannot remove read-only entity: %s".formatted(key.className()));
+        }
+
+        persistenceContext.markAsDeleted(key);
     }
 
     public <T> T find(final Class<T> entityClass, final Long id) {

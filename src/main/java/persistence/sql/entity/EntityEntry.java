@@ -7,6 +7,10 @@ class EntityEntry {
         this.status = status;
     }
 
+    Status getStatus() {
+        return status;
+    }
+
     void updateStatus(final Status status) {
         this.status = status;
     }
