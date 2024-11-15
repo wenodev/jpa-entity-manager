@@ -94,6 +94,7 @@ class PersistenceContext {
     void prePersist(final Object entity, final Object primaryKey) {
         final CacheKey key = createCacheKey(entity.getClass(),primaryKey);
         entityEntries.put(key, new EntityEntry(Status.SAVING));
+        entityCache.put(key, new CacheEntry(entity));
     }
 
     void postPersist(final Object entity, final Object primaryKey) {

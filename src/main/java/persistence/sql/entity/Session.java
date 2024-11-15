@@ -28,8 +28,6 @@ public class Session implements EntityManager {
         try {
             final Object primaryKey = entityLoader.getMaxId(entity.getClass());
             persistenceContext.prePersist(entity, primaryKey);
-            entityPersister.insert(entity);
-            persistenceContext.postPersist(entity, primaryKey);
         } catch (final RuntimeException e) {
             persistenceContext.handlePersistError(key);
             throw new PersistenceException("Entity persist failed", e);
@@ -77,37 +75,46 @@ public class Session implements EntityManager {
         final Map<CacheKey, Object> dirtyEntities = persistenceContext.getDirtyEntities();
 
         for (final Map.Entry<CacheKey, Object> entry : dirtyEntities.entrySet()) {
+            final CacheKey key = entry.getKey();
             final Object entity = entry.getValue();
+            final Status status = persistenceContext.getEntityStatus(key);
+
             try {
-                entityPersister.update(entity);
+                switch (status) {
+                    case MANAGED:
+                        entityPersister.update(entity);
+                        break;
+                    case SAVING:
+                        final Object primaryKey = entityLoader.getMaxId(entity.getClass());
+                        entityPersister.insert(entity);
+                        persistenceContext.postPersist(entity, primaryKey);
+                        break;
+                    case DELETED:
+                        entityPersister.delete(entity);
+                        persistenceContext.removeEntity(key);
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected entity status: " + status);
+                }
+            } catch (IllegalStateException e) {
+                throw new RuntimeException(e);
             } catch (final Exception e) {
-                throw new IllegalStateException("Failed to flush", e);
+                throw new IllegalStateException("Failed to flush entity: " + key.className(), e);
             }
         }
     }
-
     public <T> T merge(final T entity) {
         final CacheKey key = createKey(entity);
         final Long id = extractId(entity);
 
         if (persistenceContext.containsEntity(entity.getClass(), id)) {
-            try {
-                entityPersister.update(entity);
-                persistenceContext.managedEntity(key, entity);
-                return entity;
-            } catch (final Exception e) {
-                throw new IllegalStateException("Failed to merge managed entity: " + key.className(), e);
-            }
-        }
-        try {
-            entityPersister.insert(entity);
             persistenceContext.managedEntity(key, entity);
             return entity;
-        } catch (final Exception e) {
-            throw new IllegalStateException("Failed to merge new entity: " + key.className(), e);
         }
-    }
 
+        persistenceContext.prePersist(entity, id);
+        return entity;
+    }
     private CacheKey createKey(final Object entity) {
         return new CacheKey(
                 entity.getClass().getSimpleName(),
