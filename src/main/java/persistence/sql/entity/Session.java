@@ -65,9 +65,9 @@ public class Session implements EntityManager {
             return entityClass.cast(cachedEntity.get());
         }
 
-        final EntityEntry entityEntry = persistenceContext.preLoad(entityClass, id);
+        persistenceContext.preLoad(entityClass, id);
         final T loadedEntity = entityLoader.select(entityClass, id);
-        persistenceContext.postLoad(loadedEntity, id, entityEntry);
+        persistenceContext.postLoad(loadedEntity, id);
         return loadedEntity;
     }
 

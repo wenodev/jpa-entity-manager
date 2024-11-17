@@ -4,68 +4,80 @@ import jakarta.persistence.Entity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 class PersistenceContext {
-    private final Map<CacheKey, CacheEntry> entityCache = new HashMap<>();
-    private final Map<CacheKey, EntityEntry> entityEntries = new HashMap<>();
+    private final Map<CacheKey, EntityState> entityStates = new HashMap<>();
 
     Optional<Object> getEntity(final CacheKey key) {
-        final CacheEntry value = entityCache.get(key);
-        return Optional.ofNullable(value)
-                .map(CacheEntry::getEntity);
+        return Optional.ofNullable(entityStates.get(key))
+                .map(EntityState::getEntity);
     }
 
     void managedEntity(final CacheKey key, final Object entity) {
-        final CacheEntry cacheEntry = new CacheEntry(entity);
-        entityCache.put(key, cacheEntry);
-        entityEntries.put(key, new EntityEntry(Status.MANAGED));
+        entityStates.put(key, new EntityState(entity, Status.MANAGED));
     }
 
     void removeEntity(final CacheKey key) {
-        if (entityEntries.containsKey(key)) {
-            final EntityEntry entry = entityEntries.get(key);
-            entry.updateStatus(Status.DELETED);
-            entityCache.remove(key);
+        final EntityState state = entityStates.get(key);
+        if (state != null) {
+            state.updateStatus(Status.DELETED);
+            entityStates.remove(key);
         }
     }
 
     boolean containsEntity(final Class<?> entityClass, final Long id) {
         final CacheKey key = createCacheKey(entityClass, id);
-        return entityCache.containsKey(key);
+        return entityStates.containsKey(key);
     }
 
     Map<CacheKey, Object> getDirtyEntities() {
-        return entityCache.entrySet().stream()
-                .filter(this::isDirtyAndManagedEntity)
-                .collect(toCacheKeyObjectMap());
+        return entityStates.entrySet().stream()
+                .filter(entry -> entry.getValue().isDirty())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().getEntity()
+                ));
     }
 
-    EntityEntry preLoad(final Class<?> entity, final Object primaryKey) {
-        final EntityEntry entry = new EntityEntry(Status.LOADING);
-        final CacheKey cacheKey = createCacheKey(entity, (Long) primaryKey);
-        entityEntries.put(cacheKey, entry);
-        entityCache.put(cacheKey, new CacheEntry(entity));
-        return entry;
+    void preLoad(final Class<?> entityClass, final Object primaryKey) {
+        final CacheKey cacheKey = createCacheKey(entityClass, (Long) primaryKey);
+        final EntityState state = new EntityState(entityClass, Status.LOADING);
+        entityStates.put(cacheKey, state);
     }
 
-    void postLoad(final Object entity, final Long id, final EntityEntry entityEntry) {
-        entityEntry.updateStatus(Status.MANAGED);
+    void postLoad(final Object entity, final Long id) {
         final CacheKey cacheKey = createCacheKey(entity.getClass(), id);
-        entityEntries.put(cacheKey, entityEntry);
-        entityCache.put(cacheKey, new CacheEntry(entity));
+        entityStates.put(cacheKey, new EntityState(entity, Status.MANAGED));
     }
 
-    private Collector<Map.Entry<CacheKey, CacheEntry>, ?, Map<CacheKey, Object>> toCacheKeyObjectMap() {
-        return Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> entry.getValue().getEntity());
+    boolean contains(final CacheKey key) {
+        return entityStates.containsKey(key);
     }
 
-    private boolean isDirtyAndManagedEntity(final Map.Entry<CacheKey, CacheEntry> entry) {
-        final EntityEntry entityEntry = entityEntries.get(entry.getKey());
-        return entityEntry.isDirtyAndManagedEntity(entry.getValue());
+    void prePersist(final Object entity, final Object primaryKey) {
+        final CacheKey key = createCacheKey(entity.getClass(), primaryKey);
+        entityStates.put(key, new EntityState(entity, Status.SAVING));
+    }
+
+    void postPersist(final Object entity, final Object primaryKey) {
+        final CacheKey key = createCacheKey(entity.getClass(), primaryKey);
+        entityStates.put(key, new EntityState(entity, Status.MANAGED));
+    }
+
+    void handlePersistError(final CacheKey cacheKey) {
+        entityStates.remove(cacheKey);
+    }
+
+    Status getEntityStatus(final CacheKey key) {
+        return Optional.ofNullable(entityStates.get(key))
+                .map(EntityState::getStatus)
+                .orElse(null);
+    }
+
+    void markAsDeleted(final CacheKey key) {
+        Optional.ofNullable(entityStates.get(key))
+                .ifPresent(state -> state.updateStatus(Status.DELETED));
     }
 
     private CacheKey createCacheKey(final Class<?> entityClass, final Object id) {
@@ -77,37 +89,5 @@ class PersistenceContext {
         if (!entityClass.isAnnotationPresent(Entity.class)) {
             throw new IllegalArgumentException("Class must be annotated with @Entity");
         }
-    }
-
-    boolean contains(final CacheKey entity) {
-        return entityCache.containsKey(entity);
-    }
-
-    void prePersist(final Object entity, final Object primaryKey) {
-        final CacheKey key = createCacheKey(entity.getClass(),primaryKey);
-        entityEntries.put(key, new EntityEntry(Status.SAVING));
-        entityCache.put(key, new CacheEntry(entity));
-    }
-
-    void postPersist(final Object entity, final Object primaryKey) {
-        final CacheKey key = createCacheKey(entity.getClass(), primaryKey);
-        entityEntries.put(key, new EntityEntry(Status.MANAGED));
-        entityCache.put(key, new CacheEntry(entity));
-    }
-
-    void handlePersistError(final CacheKey cacheKey) {
-        final EntityEntry entityEntry = new EntityEntry(Status.GONE);
-        entityEntries.put(cacheKey, entityEntry);
-        entityCache.remove(cacheKey);
-    }
-
-    Status getEntityStatus(final CacheKey key) {
-        final EntityEntry entityEntry = entityEntries.get(key);
-        return entityEntry.getStatus();
-    }
-
-    void markAsDeleted(final CacheKey key) {
-        final EntityEntry entityEntry = entityEntries.get(key);
-        entityEntry.updateStatus(Status.DELETED);
     }
 }
