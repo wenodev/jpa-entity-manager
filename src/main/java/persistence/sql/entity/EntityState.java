@@ -14,7 +14,15 @@ class EntityState {
     }
 
     boolean isDirty() {
-        return status == Status.MANAGED && cacheEntry.isDirty();
+        if (status == Status.DELETED || status == Status.GONE) {
+            return false;
+        }
+
+        if (status == Status.READ_ONLY) {
+            return false;
+        }
+
+        return cacheEntry.isDirty();
     }
 
     void updateStatus(final Status newStatus) {
