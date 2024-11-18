@@ -41,13 +41,8 @@ class CacheEntry {
     }
 
     boolean isDirty() {
-        for (final Field field : entity.getClass().getDeclaredFields()) {
-            if (isPersistentField(field)) {
-                if (isFieldDirty(field)) {
-                    return true;
-                }
-            }
-        }
+        for (final Field field : entity.getClass().getDeclaredFields())
+            if (isPersistentField(field) && isFieldDirty(field)) return true;
         return false;
     }
 
